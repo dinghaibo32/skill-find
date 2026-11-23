@@ -69,10 +69,10 @@ httpx 版 `OpenAICompatibleClient`），但只返回文本，无 token 统计与
   `round(..., 6)`。
 - 单价由构造函数注入（来自 Settings），客户端本身不读环境变量。
 
-### 工厂（app/services/llm/factory.py）
+### 工厂（app/services/llm/__init__.py，沿用现有位置）
 
-`get_llm_client() -> LLMClient`：从 `get_settings()` 读配置构建
-`OpenAICompatibleClient`。业务代码只依赖工厂与 Protocol。
+扩展现有 `get_llm_client() -> LLMClient`：从 `get_settings()` 读配置构建
+`OpenAICompatibleClient`（含单价注入）。业务代码只依赖工厂与 Protocol。
 
 ## HTTP 接口
 
