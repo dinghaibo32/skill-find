@@ -11,6 +11,7 @@ class _FakeClient:
     def __init__(self, result=None, error=None):
         self._result = result
         self._error = error
+        self.received = None
 
     async def chat(self, messages):
         self.received = messages
@@ -34,7 +35,12 @@ def _result():
 
 
 def _payload():
-    return {"messages": [{"role": "user", "content": "hi"}]}
+    return {
+        "messages": [
+            {"role": "system", "content": "be brief"},
+            {"role": "user", "content": "hi"},
+        ]
+    }
 
 
 def test_chat_returns_reply_and_usage():
@@ -51,8 +57,11 @@ def test_chat_returns_reply_and_usage():
         "total_tokens": 46,
         "cost": 0.000078,
     }
-    assert fake.received[0].role == "user"
-    assert fake.received[0].content == "hi"
+    assert len(fake.received) == 2
+    assert fake.received[0].role == "system"
+    assert fake.received[0].content == "be brief"
+    assert fake.received[1].role == "user"
+    assert fake.received[1].content == "hi"
 
 
 def test_chat_not_configured_returns_503():
