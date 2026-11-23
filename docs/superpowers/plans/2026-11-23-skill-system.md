@@ -2511,7 +2511,7 @@ function sourceLabel(dir: string): string {
     <p v-if="!data" class="muted">加载中…</p>
     <template v-else>
       <ul>
-        <li v-for="skill in data.skills" :key="`${skill.source_dir}/${skill.name}`"
+        <li v-for="(skill, index) in data.skills" :key="`${index}-${skill.source_dir}/${skill.name}`"
             :class="{ overridden: skill.status === 'overridden' }">
           <div class="row">
             <strong>{{ skill.name }}</strong>
@@ -2554,7 +2554,7 @@ function sourceLabel(dir: string): string {
 </style>
 ```
 
-说明：同名冲突时 `source_dir` 不同，组合 key 唯一；`SkillInfo` 没有 `skill_path` 字段。
+说明：同名冲突可能发生在同一目录内（同目录两个子目录同名时 `source_dir` 相同），组合 key 掺入 index 保证唯一；列表整体替换、项内无局部状态，index 参与 key 安全；`SkillInfo` 没有 `skill_path` 字段。
 
 - [ ] **Step 2: 实现 DebugPanel.vue**
 
@@ -2564,7 +2564,7 @@ function sourceLabel(dir: string): string {
 <script setup lang="ts">
 import type { InjectionInfo } from "../types/skill";
 
-defineProps<{
+const props = defineProps<{
   injection: InjectionInfo | null;
   simulating: boolean;
   busy: boolean;
@@ -2574,6 +2574,14 @@ const emit = defineEmits<{
   rescan: [];
   "toggle-simulate": [enabled: boolean];
 }>();
+
+function onToggle(e: Event) {
+  const el = e.target as HTMLInputElement;
+  emit("toggle-simulate", el.checked);
+  // Reset the native checkbox to the controlled prop; on success the prop
+  // change will drive the DOM, on failure this reverts the user's click.
+  el.checked = props.simulating;
+}
 
 const strategyLabels: Record<string, string> = {
   full: "完整描述",
@@ -2592,7 +2600,7 @@ const strategyLabels: Record<string, string> = {
           type="checkbox"
           :checked="simulating"
           :disabled="busy"
-          @change="emit('toggle-simulate', ($event.target as HTMLInputElement).checked)"
+          @change="onToggle"
         />
         模拟 200 个 skill
       </label>

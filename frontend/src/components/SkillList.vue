@@ -20,7 +20,7 @@ function sourceLabel(dir: string): string {
     <p v-if="!data" class="muted">加载中…</p>
     <template v-else>
       <ul>
-        <li v-for="skill in data.skills" :key="`${skill.source_dir}/${skill.name}`"
+        <li v-for="(skill, index) in data.skills" :key="`${index}-${skill.source_dir}/${skill.name}`"
             :class="{ overridden: skill.status === 'overridden' }">
           <div class="row">
             <strong>{{ skill.name }}</strong>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { InjectionInfo } from "../types/skill";
 
-defineProps<{
+const props = defineProps<{
   injection: InjectionInfo | null;
   simulating: boolean;
   busy: boolean;
@@ -11,6 +11,14 @@ const emit = defineEmits<{
   rescan: [];
   "toggle-simulate": [enabled: boolean];
 }>();
+
+function onToggle(e: Event) {
+  const el = e.target as HTMLInputElement;
+  emit("toggle-simulate", el.checked);
+  // Reset the native checkbox to the controlled prop; on success the prop
+  // change will drive the DOM, on failure this reverts the user's click.
+  el.checked = props.simulating;
+}
 
 const strategyLabels: Record<string, string> = {
   full: "完整描述",
@@ -29,7 +37,7 @@ const strategyLabels: Record<string, string> = {
           type="checkbox"
           :checked="simulating"
           :disabled="busy"
-          @change="emit('toggle-simulate', ($event.target as HTMLInputElement).checked)"
+          @change="onToggle"
         />
         模拟 200 个 skill
       </label>
