@@ -26,7 +26,8 @@ def tool_version(cmd: str) -> str:
         out = subprocess.run(
             [exe, "--version"], capture_output=True, text=True, timeout=10
         )
-        return (out.stdout or out.stderr).strip().splitlines()[0]
+        lines = (out.stdout or out.stderr).strip().splitlines()
+        return lines[0] if lines else "no version output"
     except (OSError, subprocess.TimeoutExpired):
         return f"found at {exe}, but --version failed"
 

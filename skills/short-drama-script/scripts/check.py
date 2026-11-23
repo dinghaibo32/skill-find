@@ -27,7 +27,9 @@ def check_episode(title: str, body: str) -> list[str]:
         issues.append(f"[{title}] no valid scene heading (### 场景 N：地点 - 日/夜 - 内/外)")
     lines = [
         ln for ln in body.splitlines()
-        if DIALOGUE_RE.match(ln.strip()) and "【本集结尾钩子】" not in ln
+        if DIALOGUE_RE.match(ln.strip())
+        and not ln.strip().startswith("**")
+        and "【本集结尾钩子】" not in ln
     ]
     if not 8 <= len(lines) <= 15:
         issues.append(f"[{title}] dialogue count {len(lines)} outside 8..15")
