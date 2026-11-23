@@ -46,6 +46,7 @@ async def list_skills(
     registry: SkillRegistry = Depends(get_registry),
     agent: AgentService = Depends(get_agent_service),
 ) -> SkillsResponse:
+    """List skills with injection stats; loaded flags require session_id."""
     registry.refresh()
     return _build_response(registry, agent, session_id)
 
@@ -56,6 +57,7 @@ async def rescan_skills(
     registry: SkillRegistry = Depends(get_registry),
     agent: AgentService = Depends(get_agent_service),
 ) -> SkillsResponse:
+    """Force a full rescan of skill directories, ignoring mtime caching."""
     registry.force_rescan()
     return _build_response(registry, agent, session_id)
 
@@ -67,5 +69,6 @@ async def toggle_simulate(
     registry: SkillRegistry = Depends(get_registry),
     agent: AgentService = Depends(get_agent_service),
 ) -> SkillsResponse:
+    """Toggle degraded-injection simulation for debugging."""
     registry.set_simulate(request.enabled)
     return _build_response(registry, agent, session_id)

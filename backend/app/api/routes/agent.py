@@ -14,6 +14,7 @@ async def agent_chat(
     request: AgentChatRequest,
     agent: AgentService = Depends(get_agent_service),
 ) -> AgentChatResponse:
+    """Run one agent chat turn with the tool-calling loop."""
     try:
         result = await agent.run_turn(request.session_id, request.message)
     except LLMNotConfiguredError as exc:

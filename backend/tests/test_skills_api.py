@@ -5,7 +5,7 @@ import json
 from fastapi.testclient import TestClient
 
 from app.main import create_app
-from app.services.llm.base import LLMNotConfiguredError, ToolCall, ToolChatResult
+from app.services.llm.base import LLMError, LLMNotConfiguredError, ToolCall, ToolChatResult
 from app.services.skills.agent import AgentService, get_agent_service
 from app.services.skills.evals import EvalService, get_eval_service
 from app.services.skills.registry import SkillRegistry, get_registry
@@ -60,9 +60,19 @@ def test_list_skills_shape(tmp_path):
 
 def test_rescan_endpoint(tmp_path):
     client = _app(tmp_path, FakeLLM())
+    listed = client.get("/api/skills").json()
+    assert any("broken" in i["path"] for i in listed["issues"])
+    # Fix the broken skill on disk; force_rescan must pick it up unconditionally
+    # even when the file mtime granularity would hide the change from refresh.
+    (tmp_path / "skills" / "broken" / "SKILL.md").write_text(
+        "---\nname: fixed\ndescription: fixed skill\n---\nbody\n", encoding="utf-8"
+    )
     response = client.post("/api/skills/rescan")
     assert response.status_code == 200
-    assert response.json()["skills"]
+    body = response.json()
+    assert body["skills"]
+    assert body["issues"] == []
+    assert any(s["name"] == "fixed" for s in body["skills"])
 
 
 def test_simulate_toggle_degrades_injection(tmp_path):
@@ -104,6 +114,13 @@ def test_agent_chat_not_configured_returns_503(tmp_path):
     client = _app(tmp_path, fake)
     response = client.post("/api/agent/chat", json={"session_id": "s1", "message": "hi"})
     assert response.status_code == 503
+
+
+def test_agent_chat_upstream_error_returns_502(tmp_path):
+    fake = FakeLLM(tool_replies=[LLMError("boom")])
+    client = _app(tmp_path, fake)
+    response = client.post("/api/agent/chat", json={"session_id": "s1", "message": "hi"})
+    assert response.status_code == 502
 
 
 def test_agent_chat_empty_message_returns_422(tmp_path):
