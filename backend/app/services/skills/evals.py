@@ -14,7 +14,7 @@ from app.services.skills.registry import SkillRegistry, get_registry
 EVAL_SYSTEM_TEMPLATE = (
     "You are a skill router. Available skills (name: description):\n{skills}\n\n"
     "Decide how to handle the user request. Reply with ONLY a JSON object: "
-    '"action": "load"|"clarify"|"none", "skill": "<skill name or null>". '
+    '{{"action": "load"|"clarify"|"none", "skill": "<skill name or null>"}}. '
     "Use load when exactly one skill clearly matches, clarify when the request "
     "is ambiguous between skills, none when no skill applies."
 )

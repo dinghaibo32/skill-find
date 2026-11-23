@@ -70,6 +70,8 @@ def test_run_all_pass_and_cached(tmp_path):
     system_message = fake.chat_calls[0][0]
     assert system_message.role == "system"
     assert "- demo: demo skill" in system_message.content
+    # Regression: the rendered prompt must contain a literal JSON object example.
+    assert '{"action":' in system_message.content
 
 
 def test_single_failure_does_not_abort(tmp_path):
