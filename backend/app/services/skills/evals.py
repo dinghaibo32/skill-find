@@ -56,14 +56,18 @@ class EvalReport(BaseModel):
 
 
 def parse_actual(content: str) -> EvalActual:
-    """Extract the first JSON object from a reply (tolerates code fences)."""
+    """Extract the first JSON object from a reply (tolerates code fences).
+
+    Decoding starts at the first '{' and stops at the end of that object,
+    so trailing text or extra JSON objects are ignored. Raises ValueError
+    when no object starts there or the action is not allowed.
+    """
     start = content.find("{")
-    end = content.rfind("}")
-    if start == -1 or end == -1 or end <= start:
+    if start == -1:
         raise ValueError(f"no JSON object in reply: {content!r}")
-    data = json.loads(content[start : end + 1])
+    data, _ = json.JSONDecoder().raw_decode(content[start:])
     action = data.get("action")
-    if action not in {"load", "clarify", "none"}:
+    if action not in ("load", "clarify", "none"):
         raise ValueError(f"invalid action: {action!r}")
     return EvalActual(action=action, skill=data.get("skill"))
 
@@ -92,7 +96,15 @@ class EvalService:
             role="system", content=EVAL_SYSTEM_TEMPLATE.format(skills=injection.text)
         )
         lines = self._eval_path.read_text(encoding="utf-8").splitlines()
-        cases = [EvalCase.model_validate_json(line) for line in lines if line.strip()]
+        # Eval files are curated repo data: bad lines fail fast, with location.
+        cases: list[EvalCase] = []
+        for lineno, line in enumerate(lines, 1):
+            if not line.strip():
+                continue
+            try:
+                cases.append(EvalCase.model_validate_json(line))
+            except ValueError as exc:
+                raise ValueError(f"{self._eval_path}:{lineno}: {exc}") from exc
         rows: list[EvalRowResult] = []
         for case in cases:
             try:
