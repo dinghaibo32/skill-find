@@ -22,7 +22,7 @@ class FakeLLM:
         self.tool_calls_received: list = []
 
     async def chat(self, messages):
-        self.chat_calls.append(messages)
+        self.chat_calls.append(list(messages))
         if not self.chat_replies:
             return ChatResult(content="default reply", model="fake", usage=fake_usage())
         item = self.chat_replies.pop(0)
@@ -31,7 +31,7 @@ class FakeLLM:
         return ChatResult(content=item, model="fake", usage=fake_usage())
 
     async def chat_with_tools(self, messages, tools):
-        self.tool_calls_received.append(messages)
+        self.tool_calls_received.append(list(messages))
         if not self.tool_replies:
             return ToolChatResult(
                 content="default reply", tool_calls=[], model="fake", usage=fake_usage()

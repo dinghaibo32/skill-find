@@ -71,7 +71,7 @@ class AgentService:
         self._loaded: dict[str, set[str]] = {}
 
     def loaded_skills(self, session_id: str) -> set[str]:
-        return self._loaded.get(session_id, set())
+        return set(self._loaded.get(session_id, ()))
 
     async def run_turn(self, session_id: str, user_message: str) -> AgentTurnResult:
         self._registry.refresh()
@@ -151,7 +151,7 @@ class AgentService:
                 return self._tool_error("load_skill", name, None, f"unknown skill: {name}")
             try:
                 body = self._registry.load_body(record)
-            except (SkillParseError, OSError) as exc:
+            except (SkillParseError, OSError, UnicodeDecodeError) as exc:
                 return self._tool_error("load_skill", name, None, str(exc))
             return body, AgentEvent(type="load_skill", skill=name, ok=True)
         if call.name == "read_skill_file":

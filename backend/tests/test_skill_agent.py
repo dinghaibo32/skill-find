@@ -1,6 +1,7 @@
 """Tests for the agent loop using a scripted fake LLM."""
 
 import asyncio
+import os
 
 from app.services.llm.base import ToolCall, ToolChatResult
 from app.services.skills.agent import AgentService
@@ -56,6 +57,9 @@ def test_turn_loads_skill_and_reads_file(tmp_path):
     assert result.usage.input_tokens == 300
     assert result.usage.cost == round(0.00018 * 3, 6)
     assert service.loaded_skills("s1") == {"demo"}
+    # Snapshots must be independent copies, not references to the live list.
+    assert fake.tool_calls_received[0] is not fake.tool_calls_received[-1]
+    assert len(fake.tool_calls_received[0]) < len(fake.tool_calls_received[-1])
     last_messages = fake.tool_calls_received[2]
     tool_messages = [m for m in last_messages if m.role == "tool"]
     assert "Demo body" in tool_messages[0].content
@@ -100,6 +104,44 @@ def test_round_limit_forces_final_answer(tmp_path):
     assert result.reply == "forced final"
     assert result.tool_rounds == 1
     assert len(fake.chat_calls) == 1
+    # The forced final reply must be persisted into the session history.
+    second = asyncio.run(service.run_turn("s1", "next turn"))
+    assert second.tool_rounds == 0
+    second_turn_messages = fake.tool_calls_received[1]
+    assert "forced final" in [m.content for m in second_turn_messages]
+
+
+def test_load_skill_invalid_utf8_body_returns_error_event(tmp_path):
+    registry = _registry(tmp_path)
+    skill_file = tmp_path / "skills" / "demo" / "SKILL.md"
+    original = skill_file.stat()
+    # Corrupt the body bytes after registration; restore mtime so refresh()
+    # sees no change and the registered record stays active.
+    skill_file.write_bytes(b"---\nname: demo\ndescription: demo skill\n---\n\n\xff\xfe bad bytes")
+    os.utime(skill_file, (original.st_atime, original.st_mtime))
+    fake = FakeLLM(tool_replies=[
+        _tool_turn([ToolCall(id="c1", name="load_skill", arguments='{"name": "demo"}')]),
+        _final("recovered"),
+    ])
+    service = AgentService(registry, fake, max_tool_rounds=8)
+    result = asyncio.run(service.run_turn("s1", "load demo"))
+    assert result.reply == "recovered"
+    assert result.events[0].ok is False
+    assert "utf-8" in result.events[0].error
+    tool_message = [m for m in fake.tool_calls_received[1] if m.role == "tool"][0]
+    assert tool_message.content.startswith("Error:")
+
+
+def test_loaded_skills_returns_copy(tmp_path):
+    fake = FakeLLM(tool_replies=[
+        _tool_turn([ToolCall(id="c1", name="load_skill", arguments='{"name": "demo"}')]),
+        _final("done"),
+    ])
+    service = AgentService(_registry(tmp_path), fake, max_tool_rounds=8)
+    asyncio.run(service.run_turn("s1", "load demo"))
+    loaded = service.loaded_skills("s1")
+    loaded.clear()
+    assert service.loaded_skills("s1") == {"demo"}
 
 
 def test_history_kept_across_turns(tmp_path):
