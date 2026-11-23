@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     llm_base_url: str = "https://api.openai.com/v1"
     llm_model: str = "gpt-4o-mini"
     llm_timeout_seconds: float = 60.0
+    # Pricing in CNY per 1M tokens; adjust together with llm_model.
+    llm_input_price_per_million: float = 0.8
+    llm_output_price_per_million: float = 2.0
 
 
 @lru_cache
