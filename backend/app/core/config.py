@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     # CORS origins allowed to call the API directly (dev frontend uses a proxy).
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
-    # --- LLM settings (reserved for future model calls) ---
+    # --- LLM settings (OpenAI-compatible provider, configured via .env) ---
     # Any OpenAI-compatible endpoint works: OpenAI, DeepSeek, Qwen, Ollama, etc.
     llm_api_key: str = ""
     llm_base_url: str = "https://api.openai.com/v1"

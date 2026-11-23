@@ -66,18 +66,21 @@ class OpenAICompatibleClient:
         usage = response.usage
         if usage is None:
             raise LLMError("LLM response is missing usage statistics")
-        input_tokens = usage.prompt_tokens
-        output_tokens = usage.completion_tokens
-        total_tokens = (
-            usage.total_tokens
-            if usage.total_tokens is not None
-            else input_tokens + output_tokens
-        )
-        cost = round(
-            input_tokens / 1_000_000 * self._input_price
-            + output_tokens / 1_000_000 * self._output_price,
-            6,
-        )
+        try:
+            input_tokens = usage.prompt_tokens
+            output_tokens = usage.completion_tokens
+            total_tokens = (
+                usage.total_tokens
+                if usage.total_tokens is not None
+                else input_tokens + output_tokens
+            )
+            cost = round(
+                input_tokens / 1_000_000 * self._input_price
+                + output_tokens / 1_000_000 * self._output_price,
+                6,
+            )
+        except (AttributeError, TypeError) as exc:
+            raise LLMError(f"Unexpected LLM usage shape: {usage}") from exc
         return ChatResult(
             content=content,
             model=self._model,

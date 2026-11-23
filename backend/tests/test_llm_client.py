@@ -103,6 +103,14 @@ def test_missing_usage_raises(monkeypatch):
         _chat(_client())
 
 
+def test_null_token_field_raises(monkeypatch):
+    response = _response()
+    response.usage.prompt_tokens = None
+    _patch_sdk(monkeypatch, response=response)
+    with pytest.raises(LLMError):
+        _chat(_client())
+
+
 def test_empty_choices_raises(monkeypatch):
     response = _response()
     response.choices = []
