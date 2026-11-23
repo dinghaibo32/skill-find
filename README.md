@@ -129,3 +129,13 @@ npm run build --prefix frontend
 ```powershell
 python dev.py
 ```
+
+## Skill 系统演示
+
+- 启动：`python dev.py`，打开 http://localhost:5173
+- 左栏：skill 列表（来源/覆盖/token/加载状态）+ 调试面板（重新扫描、模拟 200 个 skill、注入预算与降级档位）
+- 右栏：对话窗口（每轮展示加载的 skill 与读取的附带文件、token 与费用）+ 路由评测表（20 条，按钮触发真实评测）
+- Skill 目录优先级：`skills/` > `skills-extra/`（先注册者胜，被覆盖者显式标记）
+- 热更新：修改 SKILL.md 后下一轮对话即生效，无需重启
+- 注入长度控制：预算 `SKILL_INJECTION_TOKEN_BUDGET`（默认 2000 token），超限自动降级 完整描述 → 截断描述 → 仅名字
+- token 数为 tiktoken(cl100k_base) 估算值
