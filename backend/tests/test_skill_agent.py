@@ -81,6 +81,22 @@ def test_traversal_error_returned_as_tool_result(tmp_path):
     assert tool_message.content.startswith("Error:")
 
 
+def test_read_skill_file_nul_path_returns_error_event(tmp_path):
+    # Embedded NUL may make resolve() raise ValueError on some Python
+    # versions; the tool must degrade to an error event, never a 500.
+    fake = FakeLLM(tool_replies=[
+        _tool_turn([ToolCall(id="c1", name="read_skill_file",
+                             arguments='{"name": "demo", "path": "a\\u0000b"}')]),
+        _final("handled"),
+    ])
+    service = AgentService(_registry(tmp_path), fake, max_tool_rounds=8)
+    result = asyncio.run(service.run_turn("s1", "read nul path"))
+    assert result.reply == "handled"
+    assert result.events[0].ok is False
+    tool_message = [m for m in fake.tool_calls_received[1] if m.role == "tool"][0]
+    assert tool_message.content.startswith("Error:")
+
+
 def test_unknown_skill_error(tmp_path):
     fake = FakeLLM(tool_replies=[
         _tool_turn([ToolCall(id="c1", name="load_skill", arguments='{"name": "nope"}')]),

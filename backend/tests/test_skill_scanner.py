@@ -129,6 +129,40 @@ def test_scan_stat_error_skips_candidate(tmp_path, monkeypatch):
     assert any("a" in i.path for i in result.issues)
 
 
+def test_scan_directory_is_dir_permission_error_reports_issue(tmp_path, monkeypatch):
+    _write_skill(tmp_path, "a")
+    original_is_dir = Path.is_dir
+
+    def flaky_is_dir(self, *args, **kwargs):
+        if self == tmp_path:
+            raise PermissionError("directory access denied")
+        return original_is_dir(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "is_dir", flaky_is_dir)
+    result = scan_directories([tmp_path])
+    assert result.skills == []
+    assert len(result.issues) == 1
+    assert result.issues[0].path == str(tmp_path)
+    assert "denied" in result.issues[0].reason
+
+
+def test_scan_child_is_dir_permission_error_skips_candidate(tmp_path, monkeypatch):
+    _write_skill(tmp_path, "a")
+    _write_skill(tmp_path, "b")
+    original_is_dir = Path.is_dir
+
+    def flaky_is_dir(self, *args, **kwargs):
+        if self.name == "a" and self.parent == tmp_path:
+            raise PermissionError("child access denied")
+        return original_is_dir(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "is_dir", flaky_is_dir)
+    result = scan_directories([tmp_path])
+    assert [r.name for r in result.skills] == ["b"]
+    assert any("a" in i.path for i in result.issues)
+    assert any("denied" in i.reason for i in result.issues)
+
+
 def test_scan_iterdir_error_reports_issue(tmp_path, monkeypatch):
     _write_skill(tmp_path, "a")
 

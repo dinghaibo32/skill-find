@@ -163,7 +163,9 @@ class AgentService:
                 return self._tool_error("read_skill_file", name, path, "synthetic skills have no files")
             try:
                 content = read_skill_file(record, path)
-            except (SkillFileError, OSError, UnicodeDecodeError) as exc:
+            except (SkillFileError, OSError, UnicodeDecodeError, ValueError) as exc:
+                # ValueError covers embedded-NUL paths rejected by resolve()
+                # on some Python versions; degrade to an error event.
                 return self._tool_error("read_skill_file", name, path, str(exc))
             return content, AgentEvent(type="read_skill_file", skill=name, path=path, ok=True)
         return f"Error: unknown tool {call.name}", None

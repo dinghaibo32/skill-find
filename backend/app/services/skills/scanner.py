@@ -49,21 +49,24 @@ def scan_directories(dirs: list[Path]) -> ScanResult:
     issues: list[ScanIssue] = []
     winners: dict[str, SkillRecord] = {}
     for directory in dirs:
-        if not directory.is_dir():
-            issues.append(ScanIssue(path=str(directory), reason="skill directory does not exist"))
-            continue
         try:
+            # is_dir() may raise OSError (e.g. permission denied), so keep it
+            # inside the guarded block to never abort the scan.
+            if not directory.is_dir():
+                issues.append(ScanIssue(path=str(directory), reason="skill directory does not exist"))
+                continue
             children = sorted(directory.iterdir())
         except OSError as exc:
             issues.append(ScanIssue(path=str(directory), reason=str(exc)))
             continue
         for child in children:
-            if not child.is_dir():
-                continue
             skill_file = child / "SKILL.md"
             try:
-                # is_file() may re-raise OSError (e.g. race with deletion), so
-                # keep it inside the guarded block to never abort the scan.
+                # is_dir()/is_file() may re-raise OSError (e.g. race with
+                # deletion or permission denied), so keep them inside the
+                # guarded block to never abort the scan.
+                if not child.is_dir():
+                    continue
                 if not skill_file.is_file():
                     issues.append(ScanIssue(path=str(child), reason="SKILL.md not found"))
                     continue
