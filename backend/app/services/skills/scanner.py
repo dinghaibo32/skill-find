@@ -15,11 +15,11 @@ def parse_skill_file(path: Path) -> tuple[str, str, str]:
     """Return (name, description, body). Raise SkillParseError when invalid."""
     text = path.read_text(encoding="utf-8")
     lines = text.splitlines()
-    if not lines or lines[0].strip() != "---":
+    if not lines or lines[0].rstrip() != "---":
         raise SkillParseError("missing opening '---' frontmatter delimiter")
     end = None
     for index in range(1, len(lines)):
-        if lines[index].strip() == "---":
+        if lines[index].rstrip() == "---":
             end = index
             break
     if end is None:
@@ -52,14 +52,22 @@ def scan_directories(dirs: list[Path]) -> ScanResult:
         if not directory.is_dir():
             issues.append(ScanIssue(path=str(directory), reason="skill directory does not exist"))
             continue
-        for child in sorted(directory.iterdir()):
+        try:
+            children = sorted(directory.iterdir())
+        except OSError as exc:
+            issues.append(ScanIssue(path=str(directory), reason=str(exc)))
+            continue
+        for child in children:
             if not child.is_dir():
                 continue
             skill_file = child / "SKILL.md"
-            if not skill_file.is_file():
-                issues.append(ScanIssue(path=str(child), reason="SKILL.md not found"))
-                continue
             try:
+                # is_file() may re-raise OSError (e.g. race with deletion), so
+                # keep it inside the guarded block to never abort the scan.
+                if not skill_file.is_file():
+                    issues.append(ScanIssue(path=str(child), reason="SKILL.md not found"))
+                    continue
+                mtime = skill_file.stat().st_mtime
                 name, description, _ = parse_skill_file(skill_file)
             except (SkillParseError, OSError, UnicodeDecodeError) as exc:
                 issues.append(ScanIssue(path=str(skill_file), reason=str(exc)))
@@ -69,7 +77,7 @@ def scan_directories(dirs: list[Path]) -> ScanResult:
                 description=description,
                 source_dir=directory.name,
                 skill_path=str(skill_file),
-                mtime=skill_file.stat().st_mtime,
+                mtime=mtime,
             )
             if name in winners:
                 record.status = "overridden"

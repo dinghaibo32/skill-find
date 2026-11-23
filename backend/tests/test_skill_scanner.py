@@ -99,3 +99,43 @@ def test_scan_real_fixtures():
     assert overridden[0].source_dir == "skills-extra"
     assert overridden[0].overridden_by == "skills"
     assert any("broken-frontmatter-demo" in i.path for i in result.issues)
+
+
+def test_parse_block_scalar_description_with_indented_delimiter(tmp_path):
+    path = tmp_path / "SKILL.md"
+    path.write_text(
+        "---\nname: demo\ndescription: |\n  first line\n  ---\n  second line\n---\nbody\n",
+        encoding="utf-8",
+    )
+    name, description, body = parse_skill_file(path)
+    assert name == "demo"
+    assert "second line" in description
+    assert body == "body"
+
+
+def test_scan_stat_error_skips_candidate(tmp_path, monkeypatch):
+    _write_skill(tmp_path, "a")
+    _write_skill(tmp_path, "b")
+    original_stat = Path.stat
+
+    def flaky_stat(self, *args, **kwargs):
+        if self.name == "SKILL.md" and self.parent.name == "a":
+            raise FileNotFoundError("deleted mid-scan")
+        return original_stat(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "stat", flaky_stat)
+    result = scan_directories([tmp_path])
+    assert [r.name for r in result.skills] == ["b"]
+    assert any("a" in i.path for i in result.issues)
+
+
+def test_scan_iterdir_error_reports_issue(tmp_path, monkeypatch):
+    _write_skill(tmp_path, "a")
+
+    def bad_iterdir(self):
+        raise PermissionError("locked")
+
+    monkeypatch.setattr(Path, "iterdir", bad_iterdir)
+    result = scan_directories([tmp_path])
+    assert result.skills == []
+    assert len(result.issues) == 1
