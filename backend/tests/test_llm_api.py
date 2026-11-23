@@ -13,6 +13,7 @@ class _FakeClient:
         self._error = error
 
     async def chat(self, messages):
+        self.received = messages
         if self._error is not None:
             raise self._error
         return self._result
@@ -37,7 +38,8 @@ def _payload():
 
 
 def test_chat_returns_reply_and_usage():
-    client = _client_with(_FakeClient(result=_result()))
+    fake = _FakeClient(result=_result())
+    client = _client_with(fake)
     response = client.post("/api/llm/chat", json=_payload())
     assert response.status_code == 200
     body = response.json()
@@ -49,6 +51,8 @@ def test_chat_returns_reply_and_usage():
         "total_tokens": 46,
         "cost": 0.000078,
     }
+    assert fake.received[0].role == "user"
+    assert fake.received[0].content == "hi"
 
 
 def test_chat_not_configured_returns_503():
@@ -66,4 +70,12 @@ def test_chat_upstream_failure_returns_502():
 def test_chat_empty_messages_returns_422():
     client = _client_with(_FakeClient(result=_result()))
     response = client.post("/api/llm/chat", json={"messages": []})
+    assert response.status_code == 422
+
+
+def test_chat_invalid_role_returns_422():
+    client = _client_with(_FakeClient(result=_result()))
+    response = client.post(
+        "/api/llm/chat", json={"messages": [{"role": "tool", "content": "x"}]}
+    )
     assert response.status_code == 422
