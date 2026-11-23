@@ -56,3 +56,18 @@ def test_reject_oversized_file(tmp_path):
     big.write_text("x" * (51 * 1024), encoding="utf-8")
     with pytest.raises(SkillFileError, match="50KB"):
         read_skill_file(record, "big.txt")
+
+
+def test_reject_non_utf8_file(tmp_path):
+    record = _record(tmp_path)
+    gbk = tmp_path / "demo" / "gbk.txt"
+    gbk.write_bytes("中文内容".encode("gbk"))
+    with pytest.raises(SkillFileError, match="UTF-8"):
+        read_skill_file(record, "gbk.txt")
+
+
+def test_read_exactly_50kb_allowed(tmp_path):
+    record = _record(tmp_path)
+    exact = tmp_path / "demo" / "exact.txt"
+    exact.write_bytes(b"x" * (50 * 1024))
+    assert len(read_skill_file(record, "exact.txt")) == 50 * 1024

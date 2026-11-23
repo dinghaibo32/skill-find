@@ -23,4 +23,9 @@ def read_skill_file(record: SkillRecord, path: str) -> str:
         raise SkillFileError(f"file not found: {path}")
     if target.stat().st_size > MAX_FILE_BYTES:
         raise SkillFileError("file exceeds 50KB limit")
-    return target.read_text(encoding="utf-8")
+    try:
+        return target.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise SkillFileError(f"file is not UTF-8 text: {path}") from exc
+    except OSError as exc:
+        raise SkillFileError(f"cannot read file {path}: {exc}") from exc
