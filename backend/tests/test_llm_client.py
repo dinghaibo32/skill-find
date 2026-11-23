@@ -31,8 +31,9 @@ def _patch_sdk(monkeypatch, response=None, error=None):
     else:
         fake.chat.completions.create = AsyncMock(return_value=response)
     fake.close = AsyncMock()
-    monkeypatch.setattr(openai_compatible, "AsyncOpenAI", lambda **kwargs: fake)
-    return fake
+    constructor = MagicMock(return_value=fake)
+    monkeypatch.setattr(openai_compatible, "AsyncOpenAI", constructor)
+    return fake, constructor
 
 
 def _client(api_key="sk-test"):
@@ -50,7 +51,7 @@ def _chat(client):
 
 
 def test_chat_returns_content_and_usage(monkeypatch):
-    _patch_sdk(monkeypatch, response=_response())
+    fake, constructor = _patch_sdk(monkeypatch, response=_response())
     result = _chat(_client())
     assert result.content == "hi"
     assert result.model == "qwen-plus"
@@ -58,6 +59,15 @@ def test_chat_returns_content_and_usage(monkeypatch):
     assert result.usage.output_tokens == 500
     assert result.usage.total_tokens == 1500
     assert result.usage.cost == 0.0018
+    fake.close.assert_awaited_once()
+    constructor.assert_called_once_with(
+        api_key="sk-test",
+        base_url="https://example.com/v1",
+        timeout=60.0,
+    )
+    kwargs = fake.chat.completions.create.await_args.kwargs
+    assert kwargs["model"] == "qwen-plus"
+    assert kwargs["messages"] == [{"role": "user", "content": "hello"}]
 
 
 def test_cost_rounded_to_six_decimals(monkeypatch):
@@ -73,6 +83,16 @@ def test_total_tokens_fallback(monkeypatch):
     _patch_sdk(monkeypatch, response=_response(total_tokens=None))
     result = _chat(_client())
     assert result.usage.total_tokens == 1500
+
+
+def test_zero_total_tokens_kept(monkeypatch):
+    _patch_sdk(
+        monkeypatch,
+        response=_response(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+    )
+    result = _chat(_client())
+    assert result.usage.total_tokens == 0
+    assert result.usage.cost == 0.0
 
 
 def test_missing_usage_raises(monkeypatch):
@@ -101,9 +121,10 @@ def test_sdk_error_mapped_to_llm_error(monkeypatch):
     error = APIConnectionError(
         request=httpx.Request("POST", "https://example.com/v1/chat/completions")
     )
-    _patch_sdk(monkeypatch, error=error)
+    fake, _ = _patch_sdk(monkeypatch, error=error)
     with pytest.raises(LLMError):
         _chat(_client())
+    fake.close.assert_awaited_once()
 
 
 def test_missing_api_key_raises():

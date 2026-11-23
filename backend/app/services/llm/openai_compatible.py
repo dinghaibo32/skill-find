@@ -68,7 +68,11 @@ class OpenAICompatibleClient:
             raise LLMError("LLM response is missing usage statistics")
         input_tokens = usage.prompt_tokens
         output_tokens = usage.completion_tokens
-        total_tokens = usage.total_tokens or input_tokens + output_tokens
+        total_tokens = (
+            usage.total_tokens
+            if usage.total_tokens is not None
+            else input_tokens + output_tokens
+        )
         cost = round(
             input_tokens / 1_000_000 * self._input_price
             + output_tokens / 1_000_000 * self._output_price,
