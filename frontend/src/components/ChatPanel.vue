@@ -74,8 +74,8 @@ async function submit() {
 .chat-panel { display: flex; flex-direction: column; }
 .turns { min-height: 200px; max-height: 45vh; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; }
 .turn { border-radius: 8px; padding: 0.5rem 0.75rem; max-width: 90%; }
-.turn.user { align-self: flex-end; background: #e8f0fe; }
-.turn.assistant { align-self: flex-start; background: #f4f4f4; }
+.turn.user { align-self: flex-end; background: #e8f0fe; color: #1f2328; }
+.turn.assistant { align-self: flex-start; background: #f4f4f4; color: #1f2328; }
 .turn.error { background: #fdecea; color: #c0392b; }
 .content { margin: 0; white-space: pre-wrap; }
 .meta { margin-top: 0.4rem; display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }

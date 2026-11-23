@@ -59,7 +59,7 @@ onMounted(refresh);
     </div>
     <HealthStatus />
   </header>
-  <p v-if="loadError" class="load-error">Skill 列表加载失败：{{ loadError }}</p>
+  <p v-if="loadError" class="load-error">操作失败：{{ loadError }}</p>
   <main class="layout">
     <aside>
       <SkillList :data="skillsData" />
