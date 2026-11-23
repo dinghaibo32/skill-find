@@ -16,6 +16,23 @@ class ChatMessage(BaseModel):
     content: str
 
 
+class LLMUsage(BaseModel):
+    """Token counts and cost for a single LLM call. Cost is in CNY."""
+
+    input_tokens: int
+    output_tokens: int
+    total_tokens: int
+    cost: float
+
+
+class ChatResult(BaseModel):
+    """Assistant reply plus per-call usage statistics."""
+
+    content: str
+    model: str
+    usage: LLMUsage
+
+
 class LLMError(Exception):
     """Base error for LLM call failures."""
 
@@ -27,6 +44,6 @@ class LLMNotConfiguredError(LLMError):
 class LLMClient(Protocol):
     """Minimal contract every LLM implementation must satisfy."""
 
-    async def chat(self, messages: list[ChatMessage]) -> str:
-        """Send chat messages and return the assistant reply text."""
+    async def chat(self, messages: list[ChatMessage]) -> ChatResult:
+        """Send chat messages and return the reply with usage statistics."""
         ...
