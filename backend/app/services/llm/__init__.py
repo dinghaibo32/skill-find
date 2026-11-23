@@ -12,6 +12,8 @@ from app.services.llm.base import (
     LLMError,
     LLMNotConfiguredError,
     LLMUsage,
+    ToolCall,
+    ToolChatResult,
 )
 from app.services.llm.openai_compatible import OpenAICompatibleClient
 
@@ -23,6 +25,8 @@ __all__ = [
     "LLMNotConfiguredError",
     "LLMUsage",
     "OpenAICompatibleClient",
+    "ToolCall",
+    "ToolChatResult",
     "get_llm_client",
 ]
 

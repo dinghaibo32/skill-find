@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.schemas.llm import ChatRequest, ChatResponse
 from app.services.llm import get_llm_client
-from app.services.llm.base import LLMClient, LLMError, LLMNotConfiguredError
+from app.services.llm.base import ChatMessage, LLMClient, LLMError, LLMNotConfiguredError
 
 router = APIRouter(tags=["llm"])
 
@@ -16,7 +16,9 @@ async def chat(
 ) -> ChatResponse:
     """Send messages to the configured model and return reply with usage."""
     try:
-        result = await client.chat(request.messages)
+        result = await client.chat(
+            [ChatMessage(role=m.role, content=m.content) for m in request.messages]
+        )
     except LLMNotConfiguredError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except LLMError as exc:

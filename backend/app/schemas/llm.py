@@ -1,14 +1,23 @@
 """Schemas for the LLM chat endpoint."""
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
-from app.services.llm.base import ChatMessage, LLMUsage
+from app.services.llm.base import LLMUsage
+
+
+class PublicChatMessage(BaseModel):
+    """Public API message: tool roles are internal to the agent loop."""
+
+    role: Literal["system", "user", "assistant"]
+    content: str
 
 
 class ChatRequest(BaseModel):
     """Payload for POST /api/llm/chat."""
 
-    messages: list[ChatMessage] = Field(min_length=1)
+    messages: list[PublicChatMessage] = Field(min_length=1)
 
 
 class ChatResponse(BaseModel):

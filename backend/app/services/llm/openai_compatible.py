@@ -12,6 +12,8 @@ from app.services.llm.base import (
     LLMError,
     LLMNotConfiguredError,
     LLMUsage,
+    ToolCall,
+    ToolChatResult,
 )
 
 
@@ -34,36 +36,23 @@ class OpenAICompatibleClient:
         self._input_price = input_price_per_million
         self._output_price = output_price_per_million
 
-    async def chat(self, messages: list[ChatMessage]) -> ChatResult:
-        """Call chat completions and return the reply with usage statistics."""
-        if not self._api_key:
-            raise LLMNotConfiguredError(
-                "LLM API key is not configured. Set LLM_API_KEY in backend/.env."
-            )
+    @staticmethod
+    def _to_payload(message: ChatMessage) -> dict:
+        data: dict = {"role": message.role, "content": message.content}
+        if message.tool_call_id is not None:
+            data["tool_call_id"] = message.tool_call_id
+        if message.tool_calls:
+            data["tool_calls"] = [
+                {
+                    "id": call.id,
+                    "type": "function",
+                    "function": {"name": call.name, "arguments": call.arguments},
+                }
+                for call in message.tool_calls
+            ]
+        return data
 
-        client = AsyncOpenAI(
-            api_key=self._api_key,
-            base_url=self._base_url,
-            timeout=self._timeout_seconds,
-        )
-        try:
-            response = await client.chat.completions.create(
-                model=self._model,
-                messages=[message.model_dump() for message in messages],
-            )
-        except APIError as exc:
-            raise LLMError(f"LLM request failed: {exc}") from exc
-        finally:
-            await client.close()
-
-        try:
-            content = response.choices[0].message.content
-        except (AttributeError, IndexError, TypeError) as exc:
-            raise LLMError(f"Unexpected LLM response shape: {response}") from exc
-        if content is None:
-            raise LLMError("LLM response has empty content")
-
-        usage = response.usage
+    def _extract_usage(self, usage) -> LLMUsage:
         if usage is None:
             raise LLMError("LLM response is missing usage statistics")
         try:
@@ -81,13 +70,83 @@ class OpenAICompatibleClient:
             )
         except (AttributeError, TypeError) as exc:
             raise LLMError(f"Unexpected LLM usage shape: {usage}") from exc
+        return LLMUsage(
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            total_tokens=total_tokens,
+            cost=cost,
+        )
+
+    async def chat(self, messages: list[ChatMessage]) -> ChatResult:
+        """Call chat completions and return the reply with usage statistics."""
+        if not self._api_key:
+            raise LLMNotConfiguredError(
+                "LLM API key is not configured. Set LLM_API_KEY in backend/.env."
+            )
+
+        client = AsyncOpenAI(
+            api_key=self._api_key,
+            base_url=self._base_url,
+            timeout=self._timeout_seconds,
+        )
+        try:
+            response = await client.chat.completions.create(
+                model=self._model,
+                messages=[self._to_payload(m) for m in messages],
+            )
+        except APIError as exc:
+            raise LLMError(f"LLM request failed: {exc}") from exc
+        finally:
+            await client.close()
+
+        try:
+            content = response.choices[0].message.content
+        except (AttributeError, IndexError, TypeError) as exc:
+            raise LLMError(f"Unexpected LLM response shape: {response}") from exc
+        if content is None:
+            raise LLMError("LLM response has empty content")
+
+        usage = self._extract_usage(response.usage)
         return ChatResult(
             content=content,
             model=self._model,
-            usage=LLMUsage(
-                input_tokens=input_tokens,
-                output_tokens=output_tokens,
-                total_tokens=total_tokens,
-                cost=cost,
-            ),
+            usage=usage,
+        )
+
+    async def chat_with_tools(
+        self, messages: list[ChatMessage], tools: list[dict]
+    ) -> ToolChatResult:
+        """Call chat completions with tools; return reply or tool calls."""
+        if not self._api_key:
+            raise LLMNotConfiguredError(
+                "LLM API key is not configured. Set LLM_API_KEY in backend/.env."
+            )
+        client = AsyncOpenAI(
+            api_key=self._api_key,
+            base_url=self._base_url,
+            timeout=self._timeout_seconds,
+        )
+        try:
+            response = await client.chat.completions.create(
+                model=self._model,
+                messages=[self._to_payload(m) for m in messages],
+                tools=tools,
+            )
+        except APIError as exc:
+            raise LLMError(f"LLM request failed: {exc}") from exc
+        finally:
+            await client.close()
+        try:
+            message = response.choices[0].message
+            content = message.content
+            raw_calls = message.tool_calls or []
+            tool_calls = [
+                ToolCall(id=c.id, name=c.function.name, arguments=c.function.arguments)
+                for c in raw_calls
+            ]
+        except (AttributeError, IndexError, TypeError) as exc:
+            raise LLMError(f"Unexpected LLM response shape: {response}") from exc
+        usage = self._extract_usage(response.usage)
+        return ToolChatResult(
+            content=content, tool_calls=tool_calls, model=self._model, usage=usage
         )
