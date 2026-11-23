@@ -28,6 +28,7 @@ def skill_line(record: SkillRecord) -> str:
 def build_injection(
     records: list[SkillRecord], budget: int, truncate_chars: int
 ) -> InjectionResult:
+    """Build injection text; names_only is best-effort and may still exceed the budget."""
     active = [r for r in records if r.status == "active"]
     full_text = "\n".join(skill_line(r) for r in active)
     tokens = count_tokens(full_text)

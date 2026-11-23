@@ -58,3 +58,10 @@ def test_overridden_records_excluded():
     result = build_injection(records, budget=1000, truncate_chars=80)
     assert result.skill_count == 1
     assert result.text.count("- a:") == 1
+
+
+def test_full_strategy_at_exact_budget_boundary():
+    records = [_record("a"), _record("b")]
+    full_text = "\n".join(f"- {r.name}: {r.description}" for r in records)
+    result = build_injection(records, budget=count_tokens(full_text), truncate_chars=80)
+    assert result.strategy == "full"
