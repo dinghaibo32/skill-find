@@ -88,11 +88,11 @@ def test_total_tokens_fallback(monkeypatch):
 def test_zero_total_tokens_kept(monkeypatch):
     _patch_sdk(
         monkeypatch,
-        response=_response(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        response=_response(prompt_tokens=1000, completion_tokens=500, total_tokens=0),
     )
     result = _chat(_client())
     assert result.usage.total_tokens == 0
-    assert result.usage.cost == 0.0
+    assert result.usage.cost == 0.0018
 
 
 def test_missing_usage_raises(monkeypatch):
