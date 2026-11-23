@@ -1,18 +1,27 @@
 """LLM integration layer.
 
-Future model calls go through the `LLMClient` protocol so routes and
-services never depend on a concrete vendor SDK.
+Model calls go through the `LLMClient` protocol so routes and services
+never depend on a concrete vendor SDK.
 """
 
 from app.core.config import get_settings
-from app.services.llm.base import ChatMessage, LLMClient, LLMError, LLMNotConfiguredError
+from app.services.llm.base import (
+    ChatMessage,
+    ChatResult,
+    LLMClient,
+    LLMError,
+    LLMNotConfiguredError,
+    LLMUsage,
+)
 from app.services.llm.openai_compatible import OpenAICompatibleClient
 
 __all__ = [
     "ChatMessage",
+    "ChatResult",
     "LLMClient",
     "LLMError",
     "LLMNotConfiguredError",
+    "LLMUsage",
     "OpenAICompatibleClient",
     "get_llm_client",
 ]
@@ -26,4 +35,6 @@ def get_llm_client() -> LLMClient:
         base_url=settings.llm_base_url,
         model=settings.llm_model,
         timeout_seconds=settings.llm_timeout_seconds,
+        input_price_per_million=settings.llm_input_price_per_million,
+        output_price_per_million=settings.llm_output_price_per_million,
     )
