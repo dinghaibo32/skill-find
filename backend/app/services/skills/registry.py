@@ -75,18 +75,30 @@ class SkillRegistry:
             self._snapshot = snapshot
 
     def force_rescan(self) -> None:
-        self._scan = scan_directories(self._dirs)
+        # Snapshot before scanning (same order as refresh) so edits made
+        # during the scan are still picked up by the next refresh.
         self._snapshot = self._current_snapshot()
+        self._scan = scan_directories(self._dirs)
 
     def _current_snapshot(self) -> dict[str, float]:
         snapshot: dict[str, float] = {}
         for directory in self._dirs:
-            if not directory.is_dir():
+            try:
+                if not directory.is_dir():
+                    continue
+                children = sorted(directory.iterdir())
+            except OSError:
                 continue
-            for child in sorted(directory.iterdir()):
+            for child in children:
                 skill_file = child / "SKILL.md"
-                if skill_file.is_file():
-                    snapshot[str(skill_file)] = skill_file.stat().st_mtime
+                try:
+                    if skill_file.is_file():
+                        snapshot[str(skill_file)] = skill_file.stat().st_mtime
+                except OSError:
+                    # Skip entries hit by stat races or permission errors;
+                    # the differing snapshot triggers a rescan and the
+                    # scanner records any real issue.
+                    continue
         return snapshot
 
 

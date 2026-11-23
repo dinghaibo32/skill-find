@@ -83,3 +83,31 @@ def test_force_rescan_updates_broken_issue(tmp_path):
     registry.force_rescan()
     assert registry.issues == []
     assert registry.get_active("broken") is not None
+
+
+def test_refresh_survives_stat_error(tmp_path, monkeypatch):
+    _write_skill(tmp_path / "skills", "a")
+    registry = _registry(tmp_path)
+    from pathlib import Path
+
+    original_stat = Path.stat
+
+    def flaky_stat(self, *args, **kwargs):
+        if self.name == "SKILL.md":
+            raise FileNotFoundError("deleted mid-snapshot")
+        return original_stat(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "stat", flaky_stat)
+    registry.refresh()  # must not raise
+
+
+def test_refresh_skips_rescan_when_unchanged(tmp_path, monkeypatch):
+    _write_skill(tmp_path / "skills", "a")
+    registry = _registry(tmp_path)
+    import app.services.skills.registry as mod
+
+    calls = []
+    monkeypatch.setattr(mod, "scan_directories", lambda dirs: calls.append(1))
+    registry.refresh()
+    registry.refresh()
+    assert calls == []
