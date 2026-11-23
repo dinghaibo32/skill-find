@@ -26,6 +26,7 @@ export interface SkillsResponse {
   skills: SkillInfo[];
   injection: InjectionInfo;
   issues: ScanIssue[];
+  simulating: boolean;
 }
 
 export interface AgentEvent {

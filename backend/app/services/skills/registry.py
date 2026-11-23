@@ -49,6 +49,10 @@ class SkillRegistry:
     def issues(self) -> list[ScanIssue]:
         return self._scan.issues
 
+    @property
+    def simulating(self) -> bool:
+        return self._simulate
+
     def get_active(self, name: str) -> SkillRecord | None:
         for record in self.records:
             if record.name == name and record.status == "active":

@@ -17,6 +17,8 @@ const loadError = ref("");
 async function refresh() {
   try {
     skillsData.value = await fetchSkills(sessionId);
+    // Server is the source of truth for the simulate flag; sync after load.
+    simulating.value = skillsData.value.simulating;
     loadError.value = "";
   } catch (err) {
     loadError.value = err instanceof Error ? err.message : String(err);
@@ -27,6 +29,7 @@ async function handleRescan() {
   busy.value = true;
   try {
     skillsData.value = await rescanSkills(sessionId);
+    simulating.value = skillsData.value.simulating;
     loadError.value = "";
   } catch (err) {
     loadError.value = err instanceof Error ? err.message : String(err);
@@ -39,7 +42,7 @@ async function handleSimulate(enabled: boolean) {
   busy.value = true;
   try {
     skillsData.value = await setSimulate(enabled, sessionId);
-    simulating.value = enabled;
+    simulating.value = skillsData.value.simulating;
     loadError.value = "";
   } catch (err) {
     loadError.value = err instanceof Error ? err.message : String(err);

@@ -37,6 +37,7 @@ def _build_response(
             skill_count=injection.skill_count,
         ),
         issues=registry.issues,
+        simulating=registry.simulating,
     )
 
 

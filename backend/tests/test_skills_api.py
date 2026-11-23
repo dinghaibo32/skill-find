@@ -55,6 +55,7 @@ def test_list_skills_shape(tmp_path):
     assert demo["status"] == "active"
     assert demo["tokens"] > 0
     assert demo["loaded"] is False
+    assert body["simulating"] is False
     assert any("broken" in i["path"] for i in body["issues"])
 
 
@@ -82,8 +83,10 @@ def test_simulate_toggle_degrades_injection(tmp_path):
     body = response.json()
     assert body["injection"]["skill_count"] == 201
     assert body["injection"]["strategy"] == "names_only"
+    assert body["simulating"] is True
     response = client.post("/api/debug/simulate", json={"enabled": False})
     assert response.json()["injection"]["skill_count"] == 1
+    assert response.json()["simulating"] is False
 
 
 def test_agent_chat_returns_events_and_usage(tmp_path):

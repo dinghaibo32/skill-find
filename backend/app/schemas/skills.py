@@ -27,6 +27,7 @@ class SkillsResponse(BaseModel):
     skills: list[SkillInfo]
     injection: InjectionInfo
     issues: list[ScanIssue]
+    simulating: bool
 
 
 class SimulateRequest(BaseModel):
