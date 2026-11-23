@@ -1,12 +1,18 @@
-"""LLM client for any OpenAI-compatible /chat/completions endpoint.
+"""LLM client for any OpenAI-compatible endpoint, built on the openai SDK.
 
 Works with OpenAI, DeepSeek, Qwen (DashScope compatible mode), Ollama,
-vLLM, etc. Only `base_url`, `api_key` and `model` differ per vendor.
+vLLM, etc. Only `base_url`, `api_key`, `model` and prices differ per vendor.
 """
 
-import httpx
+from openai import APIError, AsyncOpenAI
 
-from app.services.llm.base import ChatMessage, LLMError, LLMNotConfiguredError
+from app.services.llm.base import (
+    ChatMessage,
+    ChatResult,
+    LLMError,
+    LLMNotConfiguredError,
+    LLMUsage,
+)
 
 
 class OpenAICompatibleClient:
@@ -18,38 +24,63 @@ class OpenAICompatibleClient:
         base_url: str,
         model: str,
         timeout_seconds: float = 60.0,
+        input_price_per_million: float = 0.0,
+        output_price_per_million: float = 0.0,
     ) -> None:
         self._api_key = api_key
         self._base_url = base_url.rstrip("/")
         self._model = model
         self._timeout_seconds = timeout_seconds
+        self._input_price = input_price_per_million
+        self._output_price = output_price_per_million
 
-    async def chat(self, messages: list[ChatMessage]) -> str:
-        """Call /chat/completions and return the first reply content."""
+    async def chat(self, messages: list[ChatMessage]) -> ChatResult:
+        """Call chat completions and return the reply with usage statistics."""
         if not self._api_key:
             raise LLMNotConfiguredError(
                 "LLM API key is not configured. Set LLM_API_KEY in backend/.env."
             )
 
-        payload = {
-            "model": self._model,
-            "messages": [message.model_dump() for message in messages],
-        }
-        headers = {"Authorization": f"Bearer {self._api_key}"}
-
+        client = AsyncOpenAI(
+            api_key=self._api_key,
+            base_url=self._base_url,
+            timeout=self._timeout_seconds,
+        )
         try:
-            async with httpx.AsyncClient(timeout=self._timeout_seconds) as client:
-                response = await client.post(
-                    f"{self._base_url}/chat/completions",
-                    json=payload,
-                    headers=headers,
-                )
-                response.raise_for_status()
-                data = response.json()
-        except httpx.HTTPError as exc:
+            response = await client.chat.completions.create(
+                model=self._model,
+                messages=[message.model_dump() for message in messages],
+            )
+        except APIError as exc:
             raise LLMError(f"LLM request failed: {exc}") from exc
+        finally:
+            await client.close()
 
         try:
-            return data["choices"][0]["message"]["content"]
-        except (KeyError, IndexError, TypeError) as exc:
-            raise LLMError(f"Unexpected LLM response shape: {data}") from exc
+            content = response.choices[0].message.content
+        except (AttributeError, IndexError, TypeError) as exc:
+            raise LLMError(f"Unexpected LLM response shape: {response}") from exc
+        if content is None:
+            raise LLMError("LLM response has empty content")
+
+        usage = response.usage
+        if usage is None:
+            raise LLMError("LLM response is missing usage statistics")
+        input_tokens = usage.prompt_tokens
+        output_tokens = usage.completion_tokens
+        total_tokens = usage.total_tokens or input_tokens + output_tokens
+        cost = round(
+            input_tokens / 1_000_000 * self._input_price
+            + output_tokens / 1_000_000 * self._output_price,
+            6,
+        )
+        return ChatResult(
+            content=content,
+            model=self._model,
+            usage=LLMUsage(
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                total_tokens=total_tokens,
+                cost=cost,
+            ),
+        )
