@@ -121,3 +121,11 @@ def test_missing_usage_raises(monkeypatch):
     _patch_sdk(monkeypatch, response=response)
     with pytest.raises(LLMError):
         _run(_client(), [ChatMessage(role="user", content="hi")])
+
+
+def test_content_and_tool_calls_coexist(monkeypatch):
+    _patch_sdk(monkeypatch, response=_response(content="let me check", tool_calls=[_tool_call()]))
+    result = _run(_client(), [ChatMessage(role="user", content="hi")])
+    assert result.content == "let me check"
+    assert len(result.tool_calls) == 1
+    assert result.tool_calls[0].name == "load_skill"

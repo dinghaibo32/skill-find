@@ -19,6 +19,9 @@ class _FakeClient:
             raise self._error
         return self._result
 
+    async def chat_with_tools(self, messages, tools):
+        raise NotImplementedError("public chat endpoint never uses tools")
+
 
 def _client_with(fake):
     app = create_app()
