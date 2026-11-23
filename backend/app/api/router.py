@@ -6,11 +6,10 @@
 
 from fastapi import APIRouter
 
-from app.api.routes import health
+from app.api.routes import health, llm
 
 root_router = APIRouter()
 root_router.include_router(health.router)
 
 api_router = APIRouter(prefix="/api")
-# Register future business routers here, e.g.:
-# api_router.include_router(skills.router, prefix="/skills", tags=["skills"])
+api_router.include_router(llm.router)
