@@ -5,6 +5,7 @@ only need to read from `get_settings()` instead of os.environ directly.
 """
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -30,8 +31,21 @@ class Settings(BaseSettings):
     llm_input_price_per_million: float = 0.8
     llm_output_price_per_million: float = 2.0
 
+    # --- Skill system settings ---
+    # Directories scanned for skills, relative to the repo root.
+    # Earlier entries win name conflicts.
+    skill_dirs: list[str] = ["skills", "skills-extra"]
+    skill_injection_token_budget: int = 2000
+    skill_desc_truncate_chars: int = 80
+    agent_max_tool_rounds: int = 8
+
 
 @lru_cache
 def get_settings() -> Settings:
     """Cached settings accessor; use as a FastAPI dependency when needed."""
     return Settings()
+
+
+def get_repo_root() -> Path:
+    """Repo root resolved from this file: backend/app/core/config.py."""
+    return Path(__file__).resolve().parents[3]

@@ -1,0 +1,9 @@
+{
+  "_comment": "Smoke-test request body template. Read only when building write-endpoint requests. Replace placeholders, keep the smoke-test marker, then send via: curl.exe -X POST <url> -H 'Content-Type: application/json' -d @this-file.json",
+  "name": "smoke-test-item",
+  "description": "created by api-smoke-test skill, safe to delete",
+  "tags": ["smoke-test"],
+  "payload": {
+    "replace_me": "endpoint-specific fields go here"
+  }
+}

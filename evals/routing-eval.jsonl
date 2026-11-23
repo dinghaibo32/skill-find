@@ -1,0 +1,20 @@
+{"id": 1, "query": "写一个 8 集的逆袭短剧剧本，女主是被公司开除的销售，每集 1 分钟", "expected_skill": "short-drama-script", "category": "normal", "reason": "从零创作完整剧本，含集数与时长要求"}
+{"id": 2, "query": "帮我编一集甜宠短剧，结尾要有反转", "expected_skill": "short-drama-script", "category": "normal", "reason": "从无到有写新剧本"}
+{"id": 3, "query": "这是我写好的短剧第一集，台词太书面了，帮我改口语一点", "expected_skill": "short-drama-dialogue-polish", "category": "normal", "reason": "已有剧本，只润色台词表达"}
+{"id": 4, "query": "把这段短剧对白改得更狠一点，要符合反派人设", "expected_skill": "short-drama-dialogue-polish", "category": "normal", "reason": "已有台词，按人设改写语气"}
+{"id": 5, "query": "我有个短剧剧本，想再加一场婚礼戏，把结局改成女主复仇成功", "expected_skill": "short-drama-script", "category": "boundary", "reason": "易混淆边界：虽有旧剧本，但要新增场景与改剧情走向，超出只改台词的职责，polish 正文也明确要求转用 script"}
+{"id": 6, "query": "这个短剧剧本整体帮我改一改", "expected_skill": null, "category": "ambiguous", "reason": "意图不明：改台词还是改剧情无法判断，正确行为是先向用户澄清而非直接加载某个 skill；若评测只允许选 skill，可标注为澄清后按答案路由"}
+{"id": 7, "query": "跑后端报 ModuleNotFoundError: No module named 'openai'，明明装过了", "expected_skill": "python-env-doctor", "category": "normal", "reason": "典型环境故障：解释器与安装环境不一致"}
+{"id": 8, "query": "uv sync 报错说依赖解析冲突，是不是 venv 坏了？", "expected_skill": "python-env-doctor", "category": "normal", "reason": "依赖锁文件/虚拟环境类故障诊断"}
+{"id": 9, "query": "orders.csv 里有重复行，日期格式也乱七八糟，帮我清洗一下", "expected_skill": "csv-data-cleaning", "category": "normal", "reason": "去重与格式统一的脏数据清洗"}
+{"id": 10, "query": "表格金额列带货币符号，空值也多，整理成能直接分析的数据", "expected_skill": "csv-data-cleaning", "category": "normal", "reason": "缺失值与类型规范化清洗"}
+{"id": 11, "query": "服务起来了，帮我验一下 /health 和 /api/llm 接口通不通", "expected_skill": "api-smoke-test", "category": "normal", "reason": "验证端点存活与返回，典型冒烟"}
+{"id": 12, "query": "给这组端点跑一遍冒烟，顺便看看不带 token 会不会被拦", "expected_skill": "api-smoke-test", "category": "normal", "reason": "批量端点回归 + 鉴权负例"}
+{"id": 13, "query": "帮我写这次提交的 commit message，中文、规范一点", "expected_skill": "chinese-commit-message", "category": "normal", "reason": "撰写规范中文提交信息"}
+{"id": 14, "query": "这次改动怎么描述？我分不清该算 feat 还是 fix", "expected_skill": "chinese-commit-message", "category": "normal", "reason": "提交类型选择与描述，命中该 skill 触发条件"}
+{"id": 15, "query": "解释一下 backend/app/services/llm/base.py 里这个类是干嘛的", "expected_skill": null, "category": "no-skill", "reason": "代码阅读问答，直接读代码回答即可"}
+{"id": 16, "query": "git rebase 和 merge 有什么区别？", "expected_skill": null, "category": "hard-negative", "reason": "git 知识问答；含 git 关键词但不是撰写提交信息，不应误触发 chinese-commit-message"}
+{"id": 17, "query": "短剧行业现在赚钱吗？头部平台都有哪些？", "expected_skill": null, "category": "hard-negative", "reason": "含『短剧』关键词的行业咨询，与写剧本/改台词无关，不应误触发两个短剧 skill"}
+{"id": 18, "query": "pytest 里 test_llm_client 的断言失败了，帮我看看是代码逻辑哪里错了", "expected_skill": null, "category": "hard-negative", "reason": "代码逻辑缺陷调试，不是环境故障，不应误触发 python-env-doctor"}
+{"id": 19, "query": "帮我写一个 Python 脚本，把 CSV 文件转成 JSON 格式", "expected_skill": null, "category": "hard-negative", "reason": "格式转换的编码任务，数据本身不脏、无清洗规则需求，不应误触发 csv-data-cleaning"}
+{"id": 20, "query": "我想给项目加个用户登录功能，前后端该怎么设计？", "expected_skill": null, "category": "no-skill", "reason": "新功能设计开发，不匹配任何现有 skill，走正常开发流程"}
