@@ -11,6 +11,7 @@ def test_factory_uses_settings(monkeypatch):
         llm_api_key="sk-test",
         llm_base_url="https://example.com/v1",
         llm_model="qwen-max",
+        llm_timeout_seconds=15.0,
         llm_input_price_per_million=2.4,
         llm_output_price_per_million=9.6,
     )
@@ -20,3 +21,4 @@ def test_factory_uses_settings(monkeypatch):
     assert client._model == "qwen-max"
     assert client._input_price == 2.4
     assert client._output_price == 9.6
+    assert client._timeout_seconds == 15.0
